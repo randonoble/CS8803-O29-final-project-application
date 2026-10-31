@@ -33,6 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool recording = false;
   bool starting = false;
   bool fallPopupOpen = false;
+  int currentPage = 0;
 
   final List<MapEntry<int, double>> _recentAcceleration = [];
   final Stopwatch _fallClock = Stopwatch();
@@ -95,139 +96,177 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) =>
       // ← 1
       Scaffold(
-        appBar: AppBar(title: Text('Fukuda-Unterberger Self-Testing App')),
+        appBar: AppBar(
+          title: Text(currentPage == 0 ? 'My Fukuda Guide' : 'Trial History'),
+        ),
         // ← 3
-        body: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(10),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 700, minWidth: 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Choose the phone position from the dropdown below that is easiest for you to keep stable and hold your phone with the screen facing you flat against your chest in that position.',
-                  ),
-                  SizedBox(height: 15),
-                  Text(
-                    'Press (Start Recording) and stand still for two seconds to allow the application to calibrate, then march in place for 50 steps and finally press (Stop Recording) to save the trial.',
-                  ),
-                  SizedBox(height: 15),
-                  DropdownButtonFormField<String>(
-                    initialValue: axis,
-                    decoration: InputDecoration(
-                      labelText: 'Rotational Axis used for the trial',
-                    ),
-                    items: [
-                      DropdownMenuItem(value: 'x', child: Text('Horizontal')),
-                      DropdownMenuItem(
-                        value: 'y',
-                        child: Text('Vertical (Upright)'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'z',
-                        child: Text('Perpendicular'),
-                      ),
-                    ],
-                    onChanged: recording || starting
-                        ? null
-                        : (value) => setState(() {
-                            axis = value ?? 'y';
-                          }),
-                  ),
-                  SizedBox(height: 15),
-                  if (allSensorsReady) ...[
-                    Text('Live Sensor Readings'),
-                    Table(
-                      border: TableBorder.all(),
-                      columnWidths: {
-                        0: FlexColumnWidth(3),
-                        1: FlexColumnWidth(1),
-                        2: FlexColumnWidth(1),
-                        3: FlexColumnWidth(1),
-                      },
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: currentPage,
+          onDestinationSelected: (index) {
+            if (index == currentPage) return;
+
+            if (recording || starting || fallPopupOpen) {
+              ScaffoldMessenger.of(context).showSnackBar;
+              const SnackBar(content: Text('Finish the recording first'));
+              return;
+            }
+            setState(() {
+              currentPage = index;
+            });
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.directions_walk),
+              label: 'Test',
+            ),
+            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
+          ],
+        ),
+        body: currentPage == 0
+            ? Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(10),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: 700, minWidth: 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        row(['Sensor Type', 'X-axis', 'Y-axis', 'Z-axis']),
-                        row([
-                          'Accelerometer',
-                          (accelLatest!.x.toStringAsFixed(2)),
-                          (accelLatest!.y.toStringAsFixed(2)),
-                          (accelLatest!.z.toStringAsFixed(2)),
-                        ]),
-                        row([
-                          'Gyroscope',
-                          (gyroLatest!.x.toStringAsFixed(2)),
-                          (gyroLatest!.y.toStringAsFixed(2)),
-                          (gyroLatest!.z.toStringAsFixed(2)),
-                        ]),
+                        Text(
+                          'Choose the phone position from the dropdown below that is easiest for you to keep stable and hold your phone with the screen facing you flat against your chest in that position.',
+                        ),
+                        SizedBox(height: 15),
+                        Text(
+                          'Press (Start Recording) and stand still for two seconds to allow the application to calibrate, then march in place for 50 steps and finally press (Stop Recording) to save the trial.',
+                        ),
+                        SizedBox(height: 15),
+                        DropdownButtonFormField<String>(
+                          initialValue: axis,
+                          decoration: InputDecoration(
+                            labelText: 'Rotational Axis used for the trial',
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'x',
+                              child: Text('Horizontal'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'y',
+                              child: Text('Vertical (Upright)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'z',
+                              child: Text('Perpendicular'),
+                            ),
+                          ],
+                          onChanged: recording || starting
+                              ? null
+                              : (value) => setState(() {
+                                  axis = value ?? 'y';
+                                }),
+                        ),
+                        SizedBox(height: 15),
+                        if (allSensorsReady) ...[
+                          Text('Live Sensor Readings'),
+                          Table(
+                            border: TableBorder.all(),
+                            columnWidths: {
+                              0: FlexColumnWidth(3),
+                              1: FlexColumnWidth(1),
+                              2: FlexColumnWidth(1),
+                              3: FlexColumnWidth(1),
+                            },
+                            children: [
+                              row([
+                                'Sensor Type',
+                                'X-axis',
+                                'Y-axis',
+                                'Z-axis',
+                              ]),
+                              row([
+                                'Accelerometer',
+                                (accelLatest!.x.toStringAsFixed(2)),
+                                (accelLatest!.y.toStringAsFixed(2)),
+                                (accelLatest!.z.toStringAsFixed(2)),
+                              ]),
+                              row([
+                                'Gyroscope',
+                                (gyroLatest!.x.toStringAsFixed(2)),
+                                (gyroLatest!.y.toStringAsFixed(2)),
+                                (gyroLatest!.z.toStringAsFixed(2)),
+                              ]),
+                            ],
+                          ),
+                        ],
+                        SizedBox(height: 15),
+                        if (!isCalibrated && recording)
+                          Text('Calibrating Gyroscope - please stand still!'),
+                        SizedBox(height: 15),
+                        ElevatedButton(
+                          onPressed: starting
+                              ? null
+                              : () => recording
+                                    ? stopRecording()
+                                    : startRecording(),
+                          child: Text(
+                            starting
+                                ? 'Starting...'
+                                : recording
+                                ? 'Stop Recording'
+                                : 'Start Recording',
+                          ),
+                        ),
+                        // ElevatedButton(
+                        //   onPressed: starting
+                        //       ? null
+                        //       : () => Navigator.push(
+                        //           context,
+                        //           MaterialPageRoute(
+                        //             builder: (_) => HistoryPage(),
+                        //           ),
+                        //         ),
+                        //   child: Text('View Previous Trial History'),
+                        // ),
+                        if (latestResult != null) ...[
+                          SizedBox(height: 15),
+                          Card(
+                            child: Padding(
+                              padding: EdgeInsetsGeometry.all(10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Latest Trial Result',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${latestResult!.rotationDeg.abs().toStringAsFixed(2)}°',
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Signed Angle: ${signedDeg(latestResult!.rotationDeg)}',
+                                  ),
+                                  Text(
+                                    'Completed: ${formatDate(latestResult!.ended)}',
+                                  ),
+                                  SizedBox(height: 10),
+                                  RotationalGraph(points: latestResult!.points),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ],
-                  SizedBox(height: 15),
-                  if (!isCalibrated && recording)
-                    Text('Calibrating Gyroscope - please stand still!'),
-                  SizedBox(height: 15),
-                  ElevatedButton(
-                    onPressed: starting
-                        ? null
-                        : () => recording ? stopRecording() : startRecording(),
-                    child: Text(
-                      starting
-                          ? 'Starting...'
-                          : recording
-                          ? 'Stop Recording'
-                          : 'Start Recording',
-                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: starting
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => HistoryPage()),
-                          ),
-                    child: Text('View Previous Trial History'),
-                  ),
-                  if (latestResult != null) ...[
-                    SizedBox(height: 15),
-                    Card(
-                      child: Padding(
-                        padding: EdgeInsetsGeometry.all(10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Latest Trial Result',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${latestResult!.rotationDeg.abs().toStringAsFixed(2)}°',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Signed Angle: ${signedDeg(latestResult!.rotationDeg)}',
-                            ),
-                            Text(
-                              'Completed: ${formatDate(latestResult!.ended)}',
-                            ),
-                            SizedBox(height: 10),
-                            RotationalGraph(points: latestResult!.points),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
+                ),
+              )
+            : const HistoryPage(),
       );
 
   // ← 4
@@ -291,7 +330,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       latestResult = results;
     });
-    // debugPrint(decoded['readings'].toString());
+
+    await resultsFeedback(results);
   }
 
   // start recording sensor data
@@ -443,7 +483,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final magnitude = rawMagnitude / 9.81;
 
     // last 1 second
-    _recentAcceleration.removeWhere((sample) => now - sample.key > 1000);
+    _recentAcceleration.removeWhere((sample) => now - sample.key > 500);
 
     // check if reading dropped below 0.5g for downward fall
     final hadLowAcceleration = _recentAcceleration.any(
@@ -500,6 +540,63 @@ class _MyHomePageState extends State<MyHomePage> {
       fallPopupOpen = false;
     }
   }
+
+  Future<void> resultsFeedback(TrialRecord trial) async {
+    if (!mounted) return;
+
+    final angle = trial.rotationDeg.abs();
+
+    const referenceAngle = 30.0;
+    const borderAngle = 3.0;
+
+    String title;
+    String feedback;
+
+    if (angle < referenceAngle - borderAngle) {
+      title = 'Normal Result';
+      feedback =
+          'You turned less than 30°. which is within the expected range.';
+    } else if (angle <= referenceAngle + borderAngle) {
+      title = 'Borderline result';
+      feedback =
+          'Your rotation was close to 30°. If you feel well, repeat the test again to compare your results.';
+    } else {
+      title = 'Abnormal Result';
+      feedback =
+          'You turned more than 30°, which may suggest a balance difference. This is not a diagnosis, but we recommend'
+          ' speaking with a doctor, especially if you are experiencing dizziness.';
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${angle.toStringAsFixed(1)}°',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(feedback, style: const TextStyle(fontSize: 18)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // log display
@@ -521,9 +618,8 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text("Previous Trial History")),
-    body: FutureBuilder<List<TrialRecord>>(
+  Widget build(BuildContext context) => Material(
+    child: FutureBuilder<List<TrialRecord>>(
       future: trialsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData)
