@@ -452,8 +452,9 @@ class _MyHomePageState extends State<MyHomePage> {
               final trueRate = rate - bias;
               if (prevTime != null && prevRate != null) {
                 final t = (now - prevTime!) / 1000000.00;
-                if (t > 0 && t <= 0.25)
+                if (t > 0 && t <= 0.25) {
                   angleRads += (prevRate! + trueRate) * .5 * t;
+                }
               }
               prevTime = now;
               prevRate = trueRate;
@@ -622,11 +623,13 @@ class _HistoryPageState extends State<HistoryPage> {
     child: FutureBuilder<List<TrialRecord>>(
       future: trialsFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return Center(child: CircularProgressIndicator());
+        }
         final trials = snapshot.data;
-        if (trials!.isEmpty)
+        if (trials!.isEmpty) {
           return Center(child: Text('No previously completed trials.'));
+        }
         trials.sort((a, b) {
           final order = sort == 0
               ? a.ended.compareTo(b.ended)
