@@ -18,6 +18,7 @@ dependencies:
   path_provider: ^2.1.6
   path: ^1.9.0
   record: ^7.1.1
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -26,3 +27,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+  - assets/fallDetected.mp3

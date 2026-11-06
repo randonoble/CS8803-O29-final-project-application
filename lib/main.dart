@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() {
   runApp(const MainApp());
@@ -49,6 +50,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   final List<ImuData> pendingReadings = [];
 
+  final AudioPlayer _fallAudio = AudioPlayer();
+
   bool isCalibrated = false;
   final RotationalPoints = <RotationalPoint>[];
   final clock = Stopwatch();
@@ -89,6 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
     for (final sub in _streamSubscriptions) {
       sub.cancel();
     }
+    _fallAudio.dispose();
     super.dispose();
   }
 
@@ -514,6 +518,12 @@ class _MyHomePageState extends State<MyHomePage> {
       _fallClock.stop();
 
       if (!mounted) return;
+
+      try {
+        await _fallAudio.play(AssetSource('fallDetected.mp3'));
+      } catch (error) {
+        debugPrint('Cound not play fall audio: $error');
+      }
 
       await showDialog<void>(
         context: context,
